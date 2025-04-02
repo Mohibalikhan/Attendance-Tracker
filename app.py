@@ -19,7 +19,10 @@ selected_roll_numbers = st.multiselect("Select Roll Numbers", students_df["Roll 
 # ✅ Display selected students
 if selected_roll_numbers:
     selected_students = students_df[students_df["Roll No"].astype(str).isin(selected_roll_numbers)]
-    selected_text = ", ".join([f"<span style='color:green;'>{row['Name']} (Roll No: {row['Roll No']})</span>" for _, row in selected_students.iterrows()])
+    selected_text = ", ".join([
+        f"<span style='color:green;'>{row['Name']} (Roll No: {row['Roll No']})</span>"
+        for _, row in selected_students.iterrows()
+    ])
     st.markdown(f"#### ✅ Selected Students: {selected_text}", unsafe_allow_html=True)
 
 # ✅ Select Date
@@ -38,13 +41,15 @@ if st.button("Mark Attendance"):
 
     # ✅ Mark "Present" for selected students
     for roll_number in selected_roll_numbers:
-        student_name = students_df.loc[students_df["Roll No"].astype(str) == roll_number, "Name"].values[0]
+        student_info = students_df.loc[students_df["Roll No"].astype(str) == roll_number]
+        if not student_info.empty:
+            student_name = student_info["Name"].values[0]
 
-        if not attendance_df[(attendance_df["Roll No"] == roll_number) & (attendance_df["Date"] == str(date))].empty:
-            already_marked.append(f"{student_name} (Roll No: {roll_number})")
-        else:
-            mark_attendance(student_name, str(date), "Present")
-            newly_marked_present.append(f"{student_name} (Roll No: {roll_number})")
+            if not attendance_df[(attendance_df["Roll No"] == roll_number) & (attendance_df["Date"] == str(date))].empty:
+                already_marked.append(f"{student_name} (Roll No: {roll_number})")
+            else:
+                mark_attendance(roll_number, student_name, str(date), "Present")  # ✅ Fixed: Added roll number
+                newly_marked_present.append(f"{student_name} (Roll No: {roll_number})")
 
     # ✅ Mark "Absent" for unselected students
     absent_students = students_df[~students_df["Roll No"].astype(str).isin(selected_roll_numbers)]
@@ -53,18 +58,21 @@ if st.button("Mark Attendance"):
         student_name = row["Name"]
 
         if attendance_df[(attendance_df["Roll No"] == roll_number) & (attendance_df["Date"] == str(date))].empty:
-            mark_attendance(student_name, str(date), "Absent")
+            mark_attendance(roll_number, student_name, str(date), "Absent")  # ✅ Fixed: Added roll number
             newly_marked_absent.append(f"{student_name} (Roll No: {roll_number})")
 
     # ✅ Show Messages
     if newly_marked_present:
-        st.success(f"✅ Attendance marked as 'Present' for {len(newly_marked_present)} student(s): " + ", ".join(newly_marked_present))
-    
+        st.success(f"✅ Attendance marked as 'Present' for {len(newly_marked_present)} student(s): " +
+                   ", ".join(newly_marked_present))
+
     if newly_marked_absent:
-        st.info(f"ℹ️ Attendance marked as 'Absent' for {len(newly_marked_absent)} student(s): " + ", ".join(newly_marked_absent))
-    
+        st.info(f"ℹ️ Attendance marked as 'Absent' for {len(newly_marked_absent)} student(s): " +
+                ", ".join(newly_marked_absent))
+
     if already_marked:
-        st.warning(f"⚠️ These students already have attendance for {date}: " + ", ".join(already_marked))
+        st.warning(f"⚠️ These students already have attendance for {date}: " +
+                   ", ".join(already_marked))
 
 # ✅ Display Attendance Records
 st.subheader("📋 Attendance Records")
